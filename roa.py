@@ -83,7 +83,7 @@ class RoaData:
           h = h.fromfile(fd)
           if h.SectionID == int(RoaConsts.LOCAL_DATA_SECTION_ID):
             self.data_header = h
-            "Section de données, la longueur correcte de la section et dans h.SectionLen"
+            # "Section de données, la longueur correcte de la section est dans h.SectionLen"
             buffer = fd.read(h.SectionLen)
             pos = 0
             self.RoaSpecta = struct.unpack_from('<' + str(int(RoaConsts.MAX_SAMPLES)) +'f', buffer, offset = pos)
@@ -189,26 +189,45 @@ class RoaData:
       return self.fname
     
     def affiche(self, maximum = 0):
-      print('{:^4s};{:^15s};{:^15s}'.format('pos','raman', 'roa'))
-      for i in range(min(maximum, 1024)):
+      if maximum > 0 :
+            print('{:^4s};{:^15s};{:^15s}'.format('pos','raman', 'roa'))
+      for i in range(min(maximum, int(RoaConsts.MAX_SAMPLES))):
         print('{:4d};{:15d};{:^11.4f}'.format(i,self.getRamanSpecta(i), self.getRoaSpecta(i)))
 
+    def affiche_stats(self):
+        print("{:^20s};{:6d};{:^8.4f};{:^8.4f}".format( self.name, self.numberOfScans, self.elapsedTime, self.TotalExposureTime))
 
 import argparse
+import os
 
 def main(argv=sys.argv[1:]):
   parser = argparse.ArgumentParser(description='Process some ROA .dat files.')
-  parser.add_argument('files', metavar='file', type=str, nargs='+',
+  parser.add_argument('--showdata', default=False, action='store_true', help='Shown Content data')
+  parser.add_argument('--showdesc', default=False, action='store_true', help='Shown Description')
+  parser.add_argument('--showstats', default=False, action='store_true', help='Shown Statistics')
+  parser.add_argument('-n', default=0, type=int, action='store', help='# elements to print')
+  parser.add_argument('files', metavar='file', type=str, nargs='*',
                     help='show ROA content file')
 
-  # args = parser.parse_args()
+  args = parser.parse_args()
+
 
   roa = RoaData()
-  roa = roa.open('e.dat')
-  print(roa.getLeftHand(1,0,1,512))
-  print(roa.getName())
-  print(roa.getDescription())
-  roa.affiche(10)
+
+  print(args)
+
+  for fname in args.files:
+    if not os.path.exists(fname):
+        print("error: {} doesn't exist\n".format(fname))
+    roa = roa.open(fname)
+    # print(roa.getLeftHand(1,0,1,512))
+    # print(roa.getName())
+    if args.showdesc:
+        print(roa.getDescription())
+    if args.showstats:
+        roa.affiche_stats()
+    if args.showdata:
+        roa.affiche(args.n)
 
 if __name__ == '__main__':
     main()
